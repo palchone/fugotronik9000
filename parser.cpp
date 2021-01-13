@@ -76,7 +76,7 @@ readVariable()
 
 
 int
-main()
+main_()
 {   
     int trash;
     short hType;
