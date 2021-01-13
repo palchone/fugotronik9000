@@ -1,9 +1,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "note_set.h"   // stog i struct Note (int pitch, int startTime, int stopTime)
+struct Note
+{
+    int pitch;
+    int starttime;
+    int duration;
+};
 
-FILE *midifile = fopen("prelude8", "rb");
+static int absTime = 0;
+Note NOTES[2048];
+static int noteIdx = 0;
+Note CURRENT[256];
+static int currIdx = 0;
+
+FILE *midifile = fopen("./mfiles/prelude8", "rb");
+
+void
+addToCurrent(Note n)
+{
+    CURRENT[currIdx++] = n;
+}
+
+int
+removeFromCurrent(Note n)
+{
+    for(int i = 0; i < currIdx; ++i)
+    {
+        if(n.pitch == CURRENT[i].pitch)
+        {
+            int startTime = CURRENT[i].starttime;
+            CURRENT[i] = CURRENT[--currIdx];
+            return absTime - startTime;
+        }
+    }
+    return -420;
+}
 
 short 
 swap16(short num)
@@ -51,7 +83,6 @@ main()
     unsigned short numTracks;
     short timeDiv;
     
-    add(0, 0);
     
     // ===============HEADER======================
     //
@@ -70,8 +101,6 @@ main()
     // ==============TRACKS========================
     //
 
-    int noteIdx = 0;
-    Note NOTES[2048];
     for(int track = 0; track < numTracks; track++)
     {
         printf("NOVA TRAKA\n");
@@ -95,6 +124,7 @@ main()
             //=========READ EVENTS================
             //
             unsigned int dtime = readVariable();
+            absTime+=dtime;
             printf("event dtime %d\n", dtime);
             
             unsigned int status = (unsigned int)fgetc(midifile);
@@ -116,6 +146,13 @@ main()
                 char velocity;
                 fread(&velocity, sizeof(velocity), 1, midifile);
                 printf("noteOFF pitch: %d, velocity: %d\n", pitch, velocity);
+
+                int duration = removeFromCurrent({.pitch = (int)pitch,
+                        .starttime = 0, .duration = 0});
+                
+                NOTES[noteIdx].duration = duration;
+                noteIdx++;
+
             }
 
             else if(status >= 0x90 && status < 0xA0) // note on
@@ -126,6 +163,10 @@ main()
                 char velocity;
                 fread(&velocity, sizeof(velocity), 1, midifile);
                 printf("noteON pitch: %d, velocity: %d\n", pitch, velocity);
+
+                addToCurrent({.pitch = (int)pitch, .starttime = absTime, .duration = 0});
+                NOTES[noteIdx].pitch = pitch;
+                NOTES[noteIdx].starttime = absTime;
             }
 
             else if(status == 0xFF)
@@ -250,8 +291,13 @@ main()
             else
                 printf("unrecognized statoos: %02X\n", status);
         }
+
+        absTime = 0;
     }
-    
+    for(int i = 0; i < noteIdx; i++)
+    {
+        printf("NOTE: pitch %d, start time %d, duration %d\n", NOTES[i].pitch, NOTES[i].starttime, NOTES[i].duration);
+    }
 
     return 0;
 }
