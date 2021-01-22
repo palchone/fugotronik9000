@@ -6,7 +6,7 @@ int
 main()
 {
     static Note *NOTES;
-    NOTES = M_parse("./midi/Prelude1.mid");
+    NOTES = M_parse("./midi/Prelude1.mid");    // J.S.Bach - WTC1 - Preludij 1 u C-duru
 
     for(int i = 0; NOTES[i].pitch; i++)
     {
