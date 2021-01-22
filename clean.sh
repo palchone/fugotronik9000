@@ -1,3 +1,3 @@
 #!/bin/bash
 
-rm object/* program
+rm object/* example ft9k.hpp.gch
